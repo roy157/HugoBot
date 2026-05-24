@@ -9,12 +9,19 @@ import re
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # 🌐 Servidor web falso para simular tráfico continuo e impedir la suspensión de Render
+# 🌐 Servidor web falso modificado para soportar peticiones HEAD y GET de UptimeRobot
 class FakeServer(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.send_header("Content-type", "text/plain; charset=utf-8")
         self.end_headers()
         self.wfile.write("Sistema Multimotor Activo 🚀\nMonitoreo en línea.".encode("utf-8"))
+
+    def do_HEAD(self):
+        # Responde con éxito (200) a las verificaciones rápidas de cabeceras
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.end_headers()
 
 def iniciar_servidor_falso():
     # Render asigna dinámicamente un puerto en la variable de entorno PORT
