@@ -865,12 +865,18 @@ async def main():
 
 if __name__ == '__main__':
     print("Iniciando sistema multimotor seguro...")
-    # Iniciamos el bot de Telebot en un hilo separado
+    
+    # 1. Lanzamos el bot de PyTelegramBotAPI (Telebot) en su propio hilo independiente
     threading.Thread(target=arrancar_bot_padre, daemon=True).start()
     
-    # Ejecutamos el bucle de Telethon de forma nativa e ininterrumpida
+    # 2. Creamos y configuramos explícitamente el bucle asíncrono para el hilo principal (Evita el RuntimeError en Render)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     try:
-        loop = asyncio.get_event_loop()
+        # 3. Corremos la función principal asíncrona de Telethon
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         print("Bot detenido por el usuario.")
+    finally:
+        loop.close()
