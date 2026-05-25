@@ -45,8 +45,19 @@ TXT_DF_VIP     = "DF VIP"
 USER_NORTH_BOT = "northdatabasicbot"
 USER_LIAM_BOT  = "Yinwodataa_bot"  
 
+from telethon.sessions import StringSession
+
+# Recuperamos la sesión en texto plano desde las variables de entorno de Render
+SESSION_STRING = os.environ.get("SESSION_STRING", None)
+
 bot = telebot.TeleBot(BOT_TOKEN)
-client = TelegramClient('sesion_hugo', API_ID, API_HASH)
+
+if SESSION_STRING:
+    print("🔐 Iniciando Telethon mediante StringSession...")
+    client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+else:
+    print("📁 Usando sesión por archivo local (Modo Desarrollo)...")
+    client = TelegramClient('sesion_hugo', API_ID, API_HASH)
 
 chat_id_hugo = None
 loop_principal = None  
@@ -69,7 +80,11 @@ async def mapear_motores_por_id():
     global entidad_franchesco, entidad_df_vip, entidad_north_bot, entidad_liam_bot
     global id_franchesco, id_df_vip, id_north_bot, id_liam_bot
     
-    await client.start()
+    # client.start() sin parámetros puede congelarse en Render si no hay terminal activa.
+    # Conectamos de forma directa y segura.
+    if not client.is_connected():
+        await client.connect()
+    
     print("📋 Sincronizando e indexando IDs reales de Telegram...")
     
     GRUPOS_A_OBVIAR = ["CANAL FRANCHESCO DATA SAC", "FRANCHESCO MASTER", "DF VIP [ GRUPO 05 ]"]
@@ -850,5 +865,12 @@ async def main():
 
 if __name__ == '__main__':
     print("Iniciando sistema multimotor seguro...")
+    # Iniciamos el bot de Telebot en un hilo separado
     threading.Thread(target=arrancar_bot_padre, daemon=True).start()
-    asyncio.run(main())
+    
+    # Ejecutamos el bucle de Telethon de forma nativa e ininterrumpida
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        print("Bot detenido por el usuario.")
