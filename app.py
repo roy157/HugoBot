@@ -7,6 +7,7 @@ import threading
 import re
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import time
 
 # --- LIBRERÍAS PARA EL SERVIDOR WEB FALSO (REQUERIDO POR RENDER) ---
 class FakeServer(BaseHTTPRequestHandler):
@@ -14,7 +15,7 @@ class FakeServer(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/plain; charset=utf-8")
         self.end_headers()
-        self.wfile.write("BOT HUGO ACTUALIZADO - NEW VERSION 2.0 🚀".encode("utf-8"))
+        self.wfile.write("BOT HUGO ACTUALIZADO - VERSION 2.0 🚀".encode("utf-8"))
 
     def do_HEAD(self):
         self.send_response(200)
@@ -538,7 +539,30 @@ def responder_clicks_botones(call):
             asyncio.run_coroutine_threadsafe(presionar_boton_remoto(), loop_principal)
 
 def arrancar_bot_padre():
-    bot.infinity_polling(timeout=90, long_polling_timeout=90, logger_level=50)
+    # 1. Eliminamos cualquier webhook o consulta previa acumulada para liberar el token
+    try:
+        print("🗑️ Limpiando consultas previas en Telegram para evitar conflictos...")
+        bot.remove_webhook()
+    except Exception as e:
+        print(f"⚠️ Aviso al limpiar Webhook: {e}")
+        
+    # 2. Bucle infinito controlado para absorber el Error 409 mientras Render mata la instancia vieja
+    while True:
+        try:
+            print("🤖 Servidor Telebot iniciando polling infinity...")
+            bot.infinity_polling(
+                timeout=60, 
+                long_polling_timeout=60, 
+                logger_level=50,
+                skip_pending_updates=True # Ignora mensajes acumulados viejos para no saturarse al arrancar
+            )
+        except Exception as e:
+            if "Conflict" in str(e) or "409" in str(e):
+                print("⏳ Conflicto 409 detectado (Instancia duplicada activa). Reintentando en 10 segundos...")
+                time.sleep(10)
+            else:
+                print(f"❌ Error inesperado en Telebot: {e}. Reiniciando hilo en 5s...")
+                time.sleep(5)
 
 
 # --- FUNCIÓN PRINCIPAL ASÍNCRONA ---
