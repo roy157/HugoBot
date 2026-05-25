@@ -14,7 +14,7 @@ class FakeServer(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/plain; charset=utf-8")
         self.end_headers()
-        self.wfile.write("BOT HUGO ACTUALIZADO - VERSION 2.0 🚀".encode("utf-8"))
+        self.wfile.write("BOT HUGO ACTUALIZADO - NEW VERSION 2.0 🚀".encode("utf-8"))
 
     def do_HEAD(self):
         self.send_response(200)
