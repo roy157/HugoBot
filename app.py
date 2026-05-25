@@ -15,7 +15,7 @@ class FakeServer(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/plain; charset=utf-8")
         self.end_headers()
-        self.wfile.write("BOT HUGO ACTUALIZADO - xdVERSION 2.0 🚀".encode("utf-8"))
+        self.wfile.write("BOT HUGO ACTUALIZADO - VERSION 2.0 🚀".encode("utf-8"))
 
     def do_HEAD(self):
         self.send_response(200)
@@ -634,17 +634,28 @@ async def main():
                             op_encontrada = clave
                             placa_detectada = op_data["placa"]
                             break
-                    elif origen_texto == "DF VIP" and op_data["origen"] in ["PARTIDA", "PARTIDAV", "PARTIDADNI"]:
-                        if "MEXES" in texto_a_buscar:
+                    elif origen_texto == "DF VIP":
+                        # Si el origen es una búsqueda de propiedades por DNI, aceptamos el mensaje directo sin exigir "MEXES"
+                        if op_data["origen"] == "PARTIDADNI":
                             op_encontrada = clave
                             placa_detectada = op_data["placa"]
                             break
-                        else:
-                            continue
+                        elif op_data["origen"] in ["PARTIDA", "PARTIDAV"]:
+                            if "MEXES" in texto_a_buscar:
+                                op_encontrada = clave
+                                placa_detectada = op_data["placa"]
+                                break
+                            else:
+                                continue
                             
                     elif origen_texto == "FRANCHESCO":
-                        if "MEXES" in texto_a_buscar:
-                            if op_data["origen"] in ["PLACA", "TIVE", "BOLETA", "DENUNCIAS", "PARTIDADNI"]:
+                        # Permitir que las respuestas de propiedades por DNI pasen sin la restricción estricta de "MEXES"
+                        if op_data["origen"] == "PARTIDADNI":
+                            op_encontrada = clave
+                            placa_detectada = op_data["placa"]
+                            break
+                        elif "MEXES" in texto_a_buscar:
+                            if op_data["origen"] in ["PLACA", "TIVE", "BOLETA", "DENUNCIAS"]:
                                 op_encontrada = clave
                                 placa_detectada = op_data["placa"]
                                 break
@@ -668,7 +679,10 @@ async def main():
                 north_respondido_exito[op_encontrada] = True
                 
             ruta = await event.message.download_media(file=nombre_original)
-            caption_personalizado = f"📄 <b>Resultado ({origen_texto}):</b>\n🏁 Placa/Partida: <code>{placa_detectada}</code>"
+            
+            # Detectamos si es DNI o Placa para armar un mejor diseño de mensaje
+            tipo_identificador = "👤 DNI" if control_operaciones[op_encontrada]["origen"] == "PARTIDADNI" else "🏁 Placa/Partida"
+            caption_personalizado = f"📄 <b>Resultado ({origen_texto}):</b>\n{tipo_identificador}: <code>{placa_detectada}</code>"
             
             with open(ruta, 'rb') as doc:
                 bot.send_document(chat_id_hugo, doc, caption=caption_personalizado, parse_mode="HTML")
