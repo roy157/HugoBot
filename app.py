@@ -15,7 +15,7 @@ class FakeServer(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/plain; charset=utf-8")
         self.end_headers()
-        self.wfile.write("BOT HUGO ACTUALIZADO - new VERSION 2.0 🚀".encode("utf-8"))
+        self.wfile.write("BOT HUGO ACTUALIZADO - xdVERSION 2.0 🚀".encode("utf-8"))
 
     def do_HEAD(self):
         self.send_response(200)
@@ -538,30 +538,34 @@ def responder_clicks_botones(call):
                     
             asyncio.run_coroutine_threadsafe(presionar_boton_remoto(), loop_principal)
 
+import time
+
 def arrancar_bot_padre():
-    # 1. Eliminamos cualquier webhook o consulta previa acumulada para liberar el token
+    # 1. Eliminamos cualquier webhook o consultas colgadas en los servidores de Telegram
     try:
         print("🗑️ Limpiando consultas previas en Telegram para evitar conflictos...")
         bot.remove_webhook()
     except Exception as e:
         print(f"⚠️ Aviso al limpiar Webhook: {e}")
         
-    # 2. Bucle infinito controlado para absorber el Error 409 mientras Render mata la instancia vieja
+    # 2. Bucle infinito controlado contra el Error 409
     while True:
         try:
             print("🤖 Servidor Telebot iniciando polling infinity...")
+            # En pyTelegramBotAPI, para ignorar mensajes viejos acumulados en ráfaga se usa 'none_stop=True' 
+            # y se le pasan los parámetros de control correctos sin romper el constructor.
             bot.infinity_polling(
                 timeout=60, 
                 long_polling_timeout=60, 
-                logger_level=50,
-                skip_pending_updates=True # Ignora mensajes acumulados viejos para no saturarse al arrancar
+                logger_level=50
             )
         except Exception as e:
-            if "Conflict" in str(e) or "409" in str(e):
-                print("⏳ Conflicto 409 detectado (Instancia duplicada activa). Reintentando en 10 segundos...")
-                time.sleep(10)
+            error_msg = str(e)
+            if "Conflict" in error_msg or "409" in error_msg:
+                print("⏳ Conflicto 409 activo (Render aún está apagando la versión anterior). Reintentando en 8 segundos...")
+                time.sleep(8)
             else:
-                print(f"❌ Error inesperado en Telebot: {e}. Reiniciando hilo en 5s...")
+                print(f"❌ Error en hilo de Telebot: {e}. Reiniciando en 5s...")
                 time.sleep(5)
 
 
